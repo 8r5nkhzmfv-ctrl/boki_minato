@@ -53,36 +53,48 @@ const bgm=m=>{A.mood=m;startBgm()};
 
 /* ---------- 取引ボード ---------- */
 const KD={g:['物','#b07a3c'],m:['金','#b8921f'],n:['手形','#3f78a6'],s:['役務','#7a5ba8'],k:['債権','#b8453a']};
-const B={pcs:[],run:0,tm:null};
+const B={pcs:[],tm:null,g:[],n:0,q:false,auto:false,b:null};
+const V=()=>!!S.set.vert;
 const pc=(k,tag,l)=>{const e=document.createElement('div');e.className='pc '+k;e.style.setProperty('--c',(KD[k]||['','#b8453a'])[1]);e.innerHTML=`<b>${tag||'約束'}</b><span>${esc(l)}</span>`;return e};
 function lay(){const X={L:30,R:70,M:50};['L','R','M'].forEach(s=>{B.pcs.filter(p=>p.side==s&&!p.gone).forEach((p,i)=>{p.el.style.left=(X[s]+((i/3)|0)*(s=='R'?9:-9))+'%';p.el.style.top=(62+(i%3)*40)+'px'})})}
 function mv(k,d,l){let p=B.pcs.find(p=>p.k==k&&p.label==l&&!p.gone&&p.side!=d);
   if(!p){const el=pc(k,KD[k][0],l);$('#bst').appendChild(el);p={k,label:l,side:d=='L'?'R':'L',el};B.pcs.push(p);el.classList.add('nt');lay();el.getBoundingClientRect();el.classList.remove('nt')}
-  p.side=d;B.pcs=B.pcs.filter(x=>x!==p).concat(p);lay();se(k=='m'?'coin':'paper')}
-function bdRun(b){const st=$('#bst');B.run++;const me=B.run;clearTimeout(B.tm);B.pcs=[];
+  p.side=d;B.pcs=B.pcs.filter(x=>x!==p).concat(p);lay();if(!B.q)se(k=='m'?'coin':'paper')}
+function bdApply(raw){const st=$('#bst'),[k,l='',c='']=raw.replace(/^&/,'').split('|');
+  if(k.length==3&&'gmnsk'.includes(k[0])&&k[1]=='>')mv(k[0],k[2],l);
+  else if(k=='p+'){const el=pc('p','',l);el.classList.add('p');st.appendChild(el);B.pcs.push({k:'p',label:l,side:'C',el});if(!B.q)se('stamp')}
+  else if(k=='p-'){const p=B.pcs.filter(p=>p.k=='p'&&!p.gone).pop();if(p){p.gone=true;p.el.classList.add('gone')}if(!B.q)se('pop')}
+  else if(k=='~'){const t=st.querySelector('.tm');t.textContent=l;t.classList.add('on')}
+  if(c)$('#bcap').textContent=c}
+/* 図は「手順」の配列。&で始まる行は直前の手順に含める。手動で1手順ずつ進める */
+function bdSet(n){const st=$('#bst');if(!st||!B.b)return;n=Math.max(0,Math.min(B.g.length,n));
+  st.querySelectorAll('.pc').forEach(e=>e.remove());const t=st.querySelector('.tm');t.className='tm';t.textContent='';B.pcs=[];$('#bcap').textContent='';
+  B.q=true;st.classList.add('nt');for(let i=0;i<n-1;i++)B.g[i].forEach(bdApply);st.getBoundingClientRect();st.classList.remove('nt');B.q=false;
+  if(n>0)B.g[n-1].forEach(bdApply);else $('#bcap').textContent='「次へ」で、一手ずつ進みます。';
+  B.n=n;bdUI()}
+function bdUI(){$('#bn').textContent=`${B.n} / ${B.g.length}`;
+  $('#bprev').textContent='◀ 戻る';$('#bnext').textContent='次へ ▶';
+  $('#bprev').disabled=B.n<=0;$('#bnext').disabled=B.n>=B.g.length;$('#bauto').classList.toggle('on',B.auto)}
+function bdAuto(){B.auto=!B.auto;clearInterval(B.tm);
+  if(B.auto){if(B.n>=B.g.length)bdSet(0);B.tm=setInterval(()=>{if(B.n>=B.g.length){B.auto=false;clearInterval(B.tm);bdUI();return}bdSet(B.n+1)},1900)}
+  bdUI()}
+function bdStop(){clearInterval(B.tm);B.auto=false}
+function bdRun(b){const st=$('#bst');bdStop();B.b=b;B.g=[];b.s.forEach(r=>{if(r[0]=='&'&&B.g.length)B.g[B.g.length-1].push(r);else B.g.push([r])});
   st.innerHTML=`<div class="actor L">${sprite(b.L)}<i>${esc(b.L)}</i></div><div class="actor R">${sprite(b.R)}<i>${esc(b.R)}</i></div>${b.M?`<div class="actor M">${sprite(b.M)}<i>${esc(b.M)}</i></div>`:''}<div class="tm"></div>`;
-  $('#bcap').textContent='';$('#brep').hidden=true;let i=0;
-  const ap=raw=>{const[k,l='',c='']=raw.replace(/^&/,'').split('|');
-    if(k.length==3&&'gmnsk'.includes(k[0])&&k[1]=='>')mv(k[0],k[2],l);
-    else if(k=='p+'){const el=pc('p','',l);el.classList.add('p');st.appendChild(el);B.pcs.push({k:'p',label:l,side:'C',el});se('stamp')}
-    else if(k=='p-'){const p=B.pcs.filter(p=>p.k=='p'&&!p.gone).pop();if(p){p.gone=true;p.el.classList.add('gone')}se('pop')}
-    else if(k=='~'){const t=st.querySelector('.tm');t.textContent=l;t.classList.add('on')}
-    if(c)$('#bcap').textContent=c};
-  const nx=()=>{if(me!=B.run)return;if(i>=b.s.length){$('#brep').hidden=false;return}
-    ap(b.s[i++]);while(i<b.s.length&&b.s[i][0]=='&')ap(b.s[i++]);B.tm=setTimeout(nx,1900)};
-  B.tm=setTimeout(nx,500)}
+  $('#bprev').onclick=()=>{bdStop();bdSet(B.n-1)};$('#bnext').onclick=()=>{bdStop();bdSet(B.n+1)};$('#bauto').onclick=bdAuto;
+  bdSet(0)}
 
 /* ---------- 型カード（振り返り・まとめ・仕訳） ---------- */
 function card(n){const t=S.ep.types[n],m=NV.types[n-1],c=NV.groups[m[0]],AX=['何が動く','いつ決済','何で決済','債権債務'];S.card=true;S.seen[n]=1;save();
   const el=$('#card');
-  el.innerHTML=`<div class="cd" style="--c:${c[1]}"><div class="tag">取引の型 #${n} ／ ${c[0]}</div><h2>${esc(m[1])}</h2><div id="bst"></div><div id="bcap"></div><button id="brep" hidden>↻ 図をもう一度</button>
+  el.innerHTML=`<div class="cd" style="--c:${c[1]}"><div class="tag">取引の型 #${n} ／ ${c[0]}</div><h2>${esc(m[1])}</h2><div id="bst"></div><div id="bcap"></div><div class="bctl"><button id="bprev"></button><span id="bn"></span><button id="bnext"></button><button id="bauto">自動</button></div>
 <section class="fi" style="animation-delay:.3s"><h3>振り返り</h3><ol>${t.rev.map(x=>`<li>${esc(x)}</li>`).join('')}</ol></section>
 <section class="fi" style="animation-delay:.8s"><h3>まとめ</h3><p class="ess">${esc(t.ess)}</p><div class="ax">${t.ax.map((x,i)=>`<div><small>${AX[i]}</small>${esc(x)}</div>`).join('')}</div><p class="df">${esc(t.diff)}</p></section>
 <details class="fi" style="animation-delay:1.3s"><summary>仕訳を見る</summary><table>${t.je.map(r=>`<tr><th>${esc(r[0])}</th><td>${esc(r[1])}</td></tr>`).join('')}</table></details>
 <button id="cnext">つぎへ ▸</button></div>`;
   el.hidden=false;el.scrollTop=0;
-  $('#cnext').onclick=()=>{B.run++;clearTimeout(B.tm);el.hidden=true;S.card=false;play()};
-  $('#brep').onclick=()=>bdRun(t.bd);bdRun(t.bd)}
+  $('#cnext').onclick=()=>{bdStop();el.hidden=true;S.card=false;play()};
+  bdRun(t.bd)}
 function banner(n){const m=NV.types[n-1],c=NV.groups[m[0]],b=$('#banner');b.innerHTML=`<small>取引の型 #${n}</small><h1>${esc(m[1])}</h1><small style="color:${c[1]}">${c[0]}</small>`;b.classList.add('on');S.ban=true;se('stamp');
   const done=()=>{if(!S.ban)return;S.ban=false;b.classList.remove('on');setTimeout(play,400)};b.onclick=done;setTimeout(done,2200)}
 
@@ -95,9 +107,10 @@ function dir(it){const a=it.a;switch(it.c){case'bg':setBg(a);break;case'bgm':bgm
 function play(){clearTimeout(S.at);for(;;){const it=S.items[S.i];if(!it){endEp();return}S.cur=S.i++;if(it.k=='@'){if(dir(it))return;continue}show(it);return}}
 function show(it){const pl=$('#plate');if(it.k=='d'){pl.textContent=it.n;pl.style.setProperty('--c',ch(it.n).c);spk(it.n)}else{pl.textContent='';spk(null)}
   S.log.push([it.k=='d'?it.n:'',it.t]);if(S.log.length>300)S.log.shift();typeText(it.t);save()}
+const vs=el=>{if(S.set.vert)el.scrollLeft=-el.scrollWidth};
 function typeText(t){const el=$('#txt');clearInterval(S.tm);S.full=t;S.n=0;S.typing=true;$('#cur').hidden=true;el.scrollLeft=0;
-  if(!S.set.spd){fin();return}el.textContent='';S.tm=setInterval(()=>{S.n++;el.textContent=t.slice(0,S.n);if(S.n>=t.length)fin()},S.set.spd)}
-function fin(){clearInterval(S.tm);S.typing=false;$('#txt').textContent=S.full;$('#cur').hidden=false;if(S.auto)S.at=setTimeout(adv,900+S.full.length*55)}
+  if(!S.set.spd){fin();return}el.textContent='';S.tm=setInterval(()=>{S.n++;el.textContent=t.slice(0,S.n);vs(el);if(S.n>=t.length)fin()},S.set.spd)}
+function fin(){clearInterval(S.tm);S.typing=false;$('#txt').textContent=S.full;vs($('#txt'));$('#cur').hidden=false;if(S.auto)S.at=setTimeout(adv,900+S.full.length*55)}
 const busy=()=>S.mod||S.card||S.ban||!$('#title').hidden;
 function adv(){if(busy()||!S.ep)return;if(S.typing){fin();return}play()}
 function endEp(){const idx=NV.eps.findIndex(e=>e.id==S.ep.id),nx=NV.eps[idx+1],el=$('#card');S.card=true;
@@ -133,7 +146,7 @@ function setView(){const w=H(`<label>文字送り<select id="s-spd"><option valu
   q('#s-bgm').onchange=e=>{S.set.bgm=e.target.checked;apply()};q('#s-v').onchange=e=>{S.set.vert=e.target.checked;apply()};
   q('#s-reset').onclick=()=>{if(confirm('しおりと既読を消します。よろしいですか。')){S.seen={};try{localStorage.removeItem(K)}catch(e){}closeMod();toast('消しました')}};
   modal('設定',w)}
-function apply(){const a=$('#app');a.classList.toggle('v',S.set.vert);$('#win').classList.toggle('v',S.set.vert);a.style.setProperty('--fs',S.set.fs);
+function apply(){drawStage();if($('#bst')&&B.b){lay();bdUI()}const a=$('#app');a.classList.toggle('v',S.set.vert);$('#win').classList.toggle('v',S.set.vert);a.style.setProperty('--fs',S.set.fs);
   A.on=S.set.bgm;if(A.master)A.master.gain.value=S.set.vol;if(A.on)startBgm();else clearInterval(A.timer);save()}
 function showTitle(){const sv=load();$('#t-cont').hidden=!(sv.ep&&NV.eps.some(e=>e.id==sv.ep));$('#title').hidden=false;setBg('shop_morning');clearInterval(A.timer)}
 function begin(fn){ac();closeMod();$('#title').hidden=true;apply();fn()}
@@ -148,7 +161,7 @@ $('#b-auto').onclick=()=>{S.auto=!S.auto;$('#b-auto').classList.toggle('on',S.au
 $('.mx').onclick=closeMod;
 $('#mod').addEventListener('click',e=>{if(e.target.id=='mod')closeMod()});
 $('#app').addEventListener('click',e=>{if(e.target.closest('#bar,#card,#mod,#title,#banner'))return;adv()});
-addEventListener('keydown',e=>{if(e.key=='Escape'){closeMod();return}if(busy())return;
+addEventListener('keydown',e=>{if(e.key=='Escape'){closeMod();return}if(S.card&&$('#bnext')&&!S.mod){const nx='ArrowRight',pv='ArrowLeft';if(e.key==nx){e.preventDefault();bdStop();bdSet(B.n+1)}else if(e.key==pv){e.preventDefault();bdStop();bdSet(B.n-1)}return}if(busy())return;
   if(['Enter',' ','ArrowRight'].includes(e.key)){e.preventDefault();adv()}else if(e.key=='a')$('#b-auto').click();else if(e.key=='l')logView();else if(e.key=='m')mapView()});
 apply();showTitle();
 })();

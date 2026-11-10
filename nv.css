@@ -100,3 +100,12 @@ button{font:inherit;color:inherit;cursor:pointer}
 #title small{opacity:.6;margin-top:10px}
 #toast{position:absolute;left:50%;top:60px;transform:translateX(-50%);background:#000d;padding:8px 16px;border-radius:999px;font-size:14px;opacity:0;transition:opacity .3s;pointer-events:none;z-index:13}
 #toast.on{opacity:1}
+
+.cd .bctl{display:flex;gap:8px;align-items:center;margin-top:8px}
+.cd .bctl button{display:block;flex:1;width:auto;margin:0;padding:10px 6px;font-size:15px}
+.cd .bctl button:disabled{opacity:.35}
+.cd .bctl #bauto{flex:0 0 auto;padding:10px 12px;background:#6b5a44}
+.cd .bctl #bauto.on{background:#c9822b}
+.cd .bctl span{min-width:4.2em;text-align:center;font-size:14px;color:#5a4a36}
+#bst.nt .pc{transition:none!important;animation:none!important}
+#win.v #txt{width:100%}
