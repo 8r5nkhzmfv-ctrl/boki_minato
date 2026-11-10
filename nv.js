@@ -99,14 +99,15 @@ function typeText(t){const el=$('#txt');clearInterval(S.tm);S.full=t;S.n=0;S.typ
   if(!S.set.spd){fin();return}el.textContent='';S.tm=setInterval(()=>{S.n++;el.textContent=t.slice(0,S.n);if(S.n>=t.length)fin()},S.set.spd)}
 function fin(){clearInterval(S.tm);S.typing=false;$('#txt').textContent=S.full;$('#cur').hidden=false;if(S.auto)S.at=setTimeout(adv,900+S.full.length*55)}
 const busy=()=>S.mod||S.card||S.ban||!$('#title').hidden;
-function adv(){if(busy())return;if(S.typing){fin();return}play()}
+function adv(){if(busy()||!S.ep)return;if(S.typing){fin();return}play()}
 function endEp(){const idx=NV.eps.findIndex(e=>e.id==S.ep.id),nx=NV.eps[idx+1],el=$('#card');S.card=true;
   el.innerHTML=`<div class="cd end" style="--c:#c9822b"><div class="tag">第${idx+1}話</div><h2>${esc(S.ep.title)}</h2><p>おわり</p>${nx?`<button id="e-next">次の話へ ▸ 第${idx+2}話『${esc(nx.t)}』</button>`:'<p>つづきは準備中です。</p>'}<button id="e-map">型マップを見る</button><button id="e-top">タイトルへ</button></div>`;el.hidden=false;
   const cl=()=>{el.hidden=true;S.card=false};
   if(nx)$('#e-next').onclick=()=>{cl();startEp(nx.id,0)};
   $('#e-map').onclick=()=>{cl();mapView()};$('#e-top').onclick=()=>{cl();showTitle()}}
-function loadEp(id,cb){NV.E=NV.E||{};if(NV.E[id])return cb(NV.E[id]);const s=document.createElement('script');s.src=`episodes/${id}.js?v=${NV.v||1}`;s.onload=()=>cb(NV.E[id]);s.onerror=()=>cb(null);document.head.appendChild(s)}
-function startEp(id,i){i=i||0;loadEp(id,e=>{if(!e)return toast('話を読み込めません: '+id);e.id=id;S.ep=e;S.items=parse(e.script);S.i=i;S.cur=i;S.log=[];S.stage=[];S.sp=null;$('#txt').textContent='';$('#plate').textContent='';
+function loadEp(id,cb){NV.E=NV.E||{};if(NV.E[id])return cb(NV.E[id]);const P=['episodes/'+id+'.js',id+'.js'];let k=0;const next=()=>++k<P.length?go():cb(null);
+  const go=()=>{const s=document.createElement('script');s.src=P[k]+'?v='+(NV.v||1);s.onload=()=>NV.E[id]?cb(NV.E[id]):next();s.onerror=()=>{s.remove();next()};document.head.appendChild(s)};go()}
+function startEp(id,i){i=i||0;loadEp(id,e=>{if(!e){const m='話を読み込めません：episodes/'+id+'.js が見つかりません。フォルダ配置を確認してください。';$('#plate').textContent='';$('#txt').textContent=m;return toast(m)}e.id=id;S.ep=e;S.items=parse(e.script);S.i=i;S.cur=i;S.log=[];S.stage=[];S.sp=null;$('#txt').textContent='';$('#plate').textContent='';
   let bg=null,bm=null;for(let j=0;j<i&&j<S.items.length;j++){const t=S.items[j];if(t.k=='@'){if(t.c=='bg')bg=t.a;if(t.c=='bgm')bm=t.a}}
   setBg(bg||'plain');bgm(bm&&bm!='off'?bm:null);play()})}
 
@@ -135,7 +136,7 @@ function setView(){const w=H(`<label>文字送り<select id="s-spd"><option valu
 function apply(){const a=$('#app');a.classList.toggle('v',S.set.vert);$('#win').classList.toggle('v',S.set.vert);a.style.setProperty('--fs',S.set.fs);
   A.on=S.set.bgm;if(A.master)A.master.gain.value=S.set.vol;if(A.on)startBgm();else clearInterval(A.timer);save()}
 function showTitle(){const sv=load();$('#t-cont').hidden=!(sv.ep&&NV.eps.some(e=>e.id==sv.ep));$('#title').hidden=false;setBg('shop_morning');clearInterval(A.timer)}
-function begin(fn){ac();$('#title').hidden=true;apply();fn()}
+function begin(fn){ac();closeMod();$('#title').hidden=true;apply();fn()}
 
 /* ---------- 初期化 ---------- */
 const sv=load();Object.assign(S.set,sv.set||{});S.seen=sv.seen||{};

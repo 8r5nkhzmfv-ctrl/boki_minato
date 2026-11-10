@@ -74,7 +74,7 @@ button{font:inherit;color:inherit;cursor:pointer}
 .pc.p{left:50%;top:6px;max-width:62%;border-style:dashed;z-index:1;animation:fi .6s}
 .pc.p.gone{opacity:.25;text-decoration:line-through}
 
-#mod{position:absolute;inset:0;z-index:8;background:#000a;display:flex;align-items:center;justify-content:center;padding:12px}
+#mod{position:absolute;inset:0;z-index:12;background:#000a;display:flex;align-items:center;justify-content:center;padding:12px}
 .mbox{position:relative;width:100%;max-width:640px;max-height:86vh;overflow:auto;background:#f7f1e6;color:#2a2118;border-radius:14px;padding:16px 18px 20px}
 .mbox h3{margin:.1em 0 .6em}
 .mx{position:absolute;right:8px;top:4px;border:0;background:none;font-size:28px;color:#2a2118}
@@ -98,5 +98,5 @@ button{font:inherit;color:inherit;cursor:pointer}
 #title button{min-width:220px;padding:12px;border-radius:10px;border:1px solid #fff6;background:#c9822bd0;font-size:17px}
 #title #t-map{background:#0006}
 #title small{opacity:.6;margin-top:10px}
-#toast{position:absolute;left:50%;top:60px;transform:translateX(-50%);background:#000d;padding:8px 16px;border-radius:999px;font-size:14px;opacity:0;transition:opacity .3s;pointer-events:none;z-index:10}
+#toast{position:absolute;left:50%;top:60px;transform:translateX(-50%);background:#000d;padding:8px 16px;border-radius:999px;font-size:14px;opacity:0;transition:opacity .3s;pointer-events:none;z-index:13}
 #toast.on{opacity:1}
