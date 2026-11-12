@@ -44,11 +44,20 @@ const MOODS={
  calm:{r:261.63,sc:[0,2,4,7,9,12],bpm:58,ch:[[0,4,7],[5,9,12],[7,11,14],[0,4,7]]},
  night:{r:220,sc:[0,3,5,7,10,12],bpm:50,ch:[[0,3,7],[-4,0,3],[-2,2,5],[0,3,7]]},
  tense:{r:196,sc:[0,1,5,7,8,12],bpm:72,ch:[[0,3,6],[1,5,8],[0,3,6],[-1,2,6]]},
- warm:{r:293.66,sc:[0,2,4,7,9,12],bpm:66,ch:[[0,4,7],[7,11,14],[9,12,16],[5,9,12]]}};
-function startBgm(){clearInterval(A.timer);const M=MOODS[A.mood];if(!A.on||!M||!ac())return;let nt=A.ctx.currentTime+.15,b=0,ci=0,mi=2;const sp=60/M.bpm;
+ warm:{r:293.66,sc:[0,2,4,7,9,12],bpm:66,ch:[[0,4,7],[7,11,14],[9,12,16],[5,9,12]]},
+ bright:{k:'b',r:261.63,bpm:104}};
+function startBgm(){clearInterval(A.timer);const M=MOODS[A.mood];if(!A.on||!M||!ac())return;
+  if(M.k=='b')return startBright(M);let nt=A.ctx.currentTime+.15,b=0,ci=0,mi=2;const sp=60/M.bpm;
   A.timer=setInterval(()=>{while(nt<A.ctx.currentTime+.6){if(b%4==0){M.ch[ci++%M.ch.length].forEach(n=>tone(M.r/2*2**(n/12),nt,sp*4.2,'triangle',.045))}
     if(Math.random()<.6){mi=Math.max(0,Math.min(M.sc.length-1,mi+Math.floor(Math.random()*3)-1));tone(M.r*2**(M.sc[mi]/12),nt,sp*1.8,'sine',.055)}
     nt+=sp;b++}},200)}
+/* 明るい曲：商いの場面用。8分刻みのアルペジオ＋ベース＋軽い旋律（C-Am-F-G） */
+function startBright(M){let nt=A.ctx.currentTime+.15,st=0,mi=3;const e=60/M.bpm/2,P=[0,2,4,7,9,12],CH=[[0,4,7],[-3,0,4],[-5,0,4],[-5,-1,2]],BS=[0,-3,-7,-5],AR=[0,1,2,1,0,1,2,1];
+  A.timer=setInterval(()=>{while(nt<A.ctx.currentTime+.6){const ci=(st>>3)%4,k=st%8,f=n=>M.r*2**(n/12);
+    if(k%4==0)tone(f(BS[ci]-12),nt,e*3.6,'triangle',.07);
+    tone(f(CH[ci][AR[k]]+12),nt,e*1.1,'triangle',.04);
+    if(k%2==1&&Math.random()<.5){mi=Math.max(0,Math.min(P.length-1,mi+Math.floor(Math.random()*3)-1));tone(f(P[mi]+12),nt,e*1.6,'sine',.05)}
+    nt+=e;st++}},200)}
 const bgm=m=>{A.mood=m;startBgm()};
 
 /* ---------- 取引ボード ---------- */
@@ -106,13 +115,23 @@ function parse(src){return src.split('\n').map(l=>l.trim()).filter(l=>l&&!l.star
 function dir(it){const a=it.a;switch(it.c){case'bg':setBg(a);break;case'bgm':bgm(a=='off'?null:a);break;case'se':se(a);break;case'clear':S.stage=[];S.sp=null;drawStage();break;case'type':banner(+a);return 1;case'end':card(+a);return 1}return 0}
 function play(){clearTimeout(S.at);for(;;){const it=S.items[S.i];if(!it){endEp();return}S.cur=S.i++;if(it.k=='@'){if(dir(it))return;continue}show(it);return}}
 function show(it){const pl=$('#plate');if(it.k=='d'){pl.textContent=it.n;pl.style.setProperty('--c',ch(it.n).c);spk(it.n)}else{pl.textContent='';spk(null)}
-  S.log.push([it.k=='d'?it.n:'',it.t]);if(S.log.length>300)S.log.shift();typeText(it.t);save()}
+  S.log.push([it.k=='d'?it.n:'',it.t]);if(S.log.length>300)S.log.shift();S.pg=paginate(it.t);S.pgi=0;typeText(S.pg[0]);save()}
+/* 窓に収まらない文は、文の切れ目で自動的にページ分割する（スクロールさせない） */
+const fits=el=>S.set.vert?el.scrollWidth<=el.clientWidth+1:el.scrollHeight<=el.clientHeight+1;
+function paginate(t){const el=$('#txt');el.scrollLeft=0;el.textContent=t;if(fits(el))return[t];
+  const ss=t.match(/[^。！？]+[。！？]*[」）』]?|[。！？]+[」）』]?/g)||[t],pg=[];let cur='';
+  const put=x=>{el.textContent=cur+x;return fits(el)};
+  for(const s of ss){if(put(s)){cur+=s;continue}
+    if(cur){pg.push(cur);cur=''}
+    if(put(s)){cur=s;continue}
+    for(const c of s){if(put(c))cur+=c;else{pg.push(cur);cur=c}}}
+  if(cur)pg.push(cur);el.textContent='';return pg.length?pg:[t]}
 const vs=el=>{if(S.set.vert)el.scrollLeft=-el.scrollWidth};
 function typeText(t){const el=$('#txt');clearInterval(S.tm);S.full=t;S.n=0;S.typing=true;$('#cur').hidden=true;el.scrollLeft=0;
   if(!S.set.spd){fin();return}el.textContent='';S.tm=setInterval(()=>{S.n++;el.textContent=t.slice(0,S.n);vs(el);if(S.n>=t.length)fin()},S.set.spd)}
 function fin(){clearInterval(S.tm);S.typing=false;$('#txt').textContent=S.full;vs($('#txt'));$('#cur').hidden=false;if(S.auto)S.at=setTimeout(adv,900+S.full.length*55)}
 const busy=()=>S.mod||S.card||S.ban||!$('#title').hidden;
-function adv(){if(busy()||!S.ep)return;if(S.typing){fin();return}play()}
+function adv(){if(busy()||!S.ep)return;if(S.typing){fin();return}if(S.pg&&S.pgi<S.pg.length-1){S.pgi++;typeText(S.pg[S.pgi]);return}play()}
 function endEp(){const idx=NV.eps.findIndex(e=>e.id==S.ep.id),nx=NV.eps[idx+1],el=$('#card');S.card=true;
   el.innerHTML=`<div class="cd end" style="--c:#c9822b"><div class="tag">第${idx+1}話</div><h2>${esc(S.ep.title)}</h2><p>おわり</p>${nx?`<button id="e-next">次の話へ ▸ 第${idx+2}話『${esc(nx.t)}』</button>`:'<p>つづきは準備中です。</p>'}<button id="e-map">型マップを見る</button><button id="e-top">タイトルへ</button></div>`;el.hidden=false;
   const cl=()=>{el.hidden=true;S.card=false};
@@ -120,7 +139,7 @@ function endEp(){const idx=NV.eps.findIndex(e=>e.id==S.ep.id),nx=NV.eps[idx+1],e
   $('#e-map').onclick=()=>{cl();mapView()};$('#e-top').onclick=()=>{cl();showTitle()}}
 function loadEp(id,cb){NV.E=NV.E||{};if(NV.E[id])return cb(NV.E[id]);const P=['episodes/'+id+'.js',id+'.js'];let k=0;const next=()=>++k<P.length?go():cb(null);
   const go=()=>{const s=document.createElement('script');s.src=P[k]+'?v='+(NV.v||1);s.onload=()=>NV.E[id]?cb(NV.E[id]):next();s.onerror=()=>{s.remove();next()};document.head.appendChild(s)};go()}
-function startEp(id,i){i=i||0;loadEp(id,e=>{if(!e){const m='話を読み込めません：episodes/'+id+'.js が見つかりません。フォルダ配置を確認してください。';$('#plate').textContent='';$('#txt').textContent=m;return toast(m)}e.id=id;S.ep=e;S.items=parse(e.script);S.i=i;S.cur=i;S.log=[];S.stage=[];S.sp=null;$('#txt').textContent='';$('#plate').textContent='';
+function startEp(id,i){i=i||0;loadEp(id,e=>{if(!e){const m='話を読み込めません：episodes/'+id+'.js が見つかりません。フォルダ配置を確認してください。';$('#plate').textContent='';$('#txt').textContent=m;return toast(m)}e.id=id;S.ep=e;S.items=parse(e.script);S.i=i;S.cur=i;S.pg=null;S.log=[];S.stage=[];S.sp=null;$('#txt').textContent='';$('#plate').textContent='';
   let bg=null,bm=null;for(let j=0;j<i&&j<S.items.length;j++){const t=S.items[j];if(t.k=='@'){if(t.c=='bg')bg=t.a;if(t.c=='bgm')bm=t.a}}
   setBg(bg||'plain');bgm(bm&&bm!='off'?bm:null);play()})}
 
