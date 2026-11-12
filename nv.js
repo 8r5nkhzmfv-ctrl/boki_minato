@@ -62,7 +62,7 @@ function mv(k,d,l){let p=B.pcs.find(p=>p.k==k&&p.label==l&&!p.gone&&p.side!=d);
   p.side=d;B.pcs=B.pcs.filter(x=>x!==p).concat(p);lay();if(!B.q)se(k=='m'?'coin':'paper')}
 function bdApply(raw){const st=$('#bst'),[k,l='',c='']=raw.replace(/^&/,'').split('|');
   if(k.length==3&&'gmnsk'.includes(k[0])&&k[1]=='>')mv(k[0],k[2],l);
-  else if(k=='p+'){const el=pc('p','',l);el.classList.add('p');st.appendChild(el);B.pcs.push({k:'p',label:l,side:'C',el});if(!B.q)se('stamp')}
+  else if(k=='p+'){B.pcs=B.pcs.filter(x=>{if(x.k=='p'&&x.gone){x.el.remove();return false}return true});const el=pc('p','',l);el.classList.add('p');st.appendChild(el);B.pcs.push({k:'p',label:l,side:'C',el});if(!B.q)se('stamp')}
   else if(k=='p-'){const p=B.pcs.filter(p=>p.k=='p'&&!p.gone).pop();if(p){p.gone=true;p.el.classList.add('gone')}if(!B.q)se('pop')}
   else if(k=='~'){const t=st.querySelector('.tm');t.textContent=l;t.classList.add('on')}
   if(c)$('#bcap').textContent=c}
